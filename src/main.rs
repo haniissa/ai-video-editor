@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
 
+mod ffprobe;
+mod video;
+
 #[derive(Parser)]
 #[command(name = "ai-video-editor")]
 #[command(about = "AI powered video editing engine")]
@@ -22,8 +25,8 @@ fn main() {
 
     match cli.command{
         Commands::Analyze { video } => {
-            println!("Analyzing video:");
-            println!("{}", video);
+           video::analyze_video(&video)
+            .unwrap();
         }
 
         Commands::Edit { video } => {
