@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
 
-mod ffprobe;
 mod video;
 
 #[derive(Parser)]
@@ -20,18 +19,17 @@ enum Commands {
         video:String,
     },
 }
-fn main() {
+fn main() -> anyhow::Result<()>{
     let cli = Cli::parse();
 
     match cli.command{
         Commands::Analyze { video } => {
-           video::analyze_video(&video)
-            .unwrap();
+           video::analyze_video(&video)?;
         }
 
         Commands::Edit { video } => {
-            println!("Editing video:");
             println!("{}", video);
         }
     }
+    Ok(())
 }

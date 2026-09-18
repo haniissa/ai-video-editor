@@ -1,8 +1,8 @@
-use anyhow::{Ok, Result};
+use crate::video::metadata::VideoMetadata;
+use anyhow::Result;
 use std::process::Command;
 
-
-pub fn analyze(video: &str)-> Result<String>{
+pub fn analyze(video: &str) -> Result<String> {
     let output = Command::new("ffprobe")
         .args([
             "-v",
@@ -15,6 +15,14 @@ pub fn analyze(video: &str)-> Result<String>{
         ])
         .output()?;
     let json = String::from_utf8(output.stdout)?;
+    // println!("{}", json);
 
     Ok(json)
+}
+
+pub fn get_metadata(video: &str) -> Result<VideoMetadata> {
+    let json = analyze(video)?;
+
+    let metadata: VideoMetadata = serde_json::from_str(&json)?;
+    Ok(metadata)
 }
