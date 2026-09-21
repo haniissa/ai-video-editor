@@ -8,23 +8,19 @@ mod video;
 
 struct Cli {
     #[command(subcommand)]
-    command: Commands,// hold the chosen subcommand
+    command: Commands, // hold the chosen subcommand
 }
 #[derive(Subcommand)] // this generate the logic to trun enumvariants (analyze , edit ) into CLI subcommand option
 enum Commands {
-    Analyze {
-        video: String,
-    },
-    Edit{
-        video:String,
-    },
+    Analyze { video: String },
+    Edit { video: String },
 }
-fn main() -> anyhow::Result<()>{
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    match cli.command{
+    match cli.command {
         Commands::Analyze { video } => {
-           video::analyze_video(&video)?;
+            video::analyze_video(&video)?;
         }
 
         Commands::Edit { video } => {

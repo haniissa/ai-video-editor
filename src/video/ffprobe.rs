@@ -15,7 +15,6 @@ pub fn analyze(video: &str) -> Result<String> {
         ])
         .output()?;
     let json = String::from_utf8(output.stdout)?;
-    // println!("{}", json);
 
     Ok(json)
 }
