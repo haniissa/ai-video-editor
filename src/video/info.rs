@@ -1,5 +1,3 @@
-use anyhow::Ok;
-
 use crate::video::metadata::VideoMetadata;
 
 #[derive(Debug)]
@@ -9,8 +7,22 @@ pub struct VideoInfo {
     pub height: Option<u32>,
     pub video_codec: Option<String>,
     pub audio_codec: Option<String>,
+    pub has_audio: bool,
+    pub sample_rate: Option<u32>,
+    pub frame_rate: Option<f64>,
 }
+fn parse_frame_rate(rate: &str) -> Option<f64> {
+    let (numerator, denominator) = rate.split_once('/')?;
 
+    let numerator = numerator.parse::<f64>().ok()?;
+    let denominator = denominator.parse::<f64>().ok()?;
+
+    if denominator == 0.0 {
+        return None;
+    }
+
+    Some(numerator / denominator)
+}
 impl VideoInfo {
     pub fn from_metadata(metadata: &VideoMetadata) -> anyhow::Result<Self> {
         let duration = metadata
@@ -32,12 +44,77 @@ impl VideoInfo {
         let audio = metadata.audio_stream();
         let audio_codec = audio.and_then(|stream| stream.codec_name.clone());
 
+        let has_audio = audio.is_some();
+
+        // let sample_rate = audio.and_then(|stream| stream.sample_rate.clone());
+        let sample_rate = audio.and_then(|stream| {
+            stream
+                .sample_rate
+                .as_ref()
+                .and_then(|s| s.parse::<u32>().ok())
+        });
+        let video = metadata.video_stream();
+
+        let frame_rate = video.and_then(|frame_rate| {
+            frame_rate
+                .avg_frame_rate
+                .as_deref()
+                .and_then(parse_frame_rate)
+        });
         Ok(VideoInfo {
             duration: duration, // short hand just duration like js
             width,
             height: height,
             audio_codec,
             video_codec,
+            has_audio,
+            sample_rate,
+            frame_rate,
         })
+    }
+    pub fn resolution_label(&self) -> &str {
+        let resolution = self.height;
+        if let Some(height) = resolution {
+            if height >= 2160 {
+                "4K"
+            } else if height >= 1080 {
+                "FHD"
+            } else if height >= 720 {
+                "HD"
+            } else {
+                "SD"
+            }
+        } else {
+            "Unknown"
+        }
+    }
+}
+/*
+ *
+ */
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test] // Normal frame rates like 30/1
+    fn test_parse_frame_rate() {
+        assert_eq!(parse_frame_rate("30/1"), Some(30.0));
+        assert_eq!(parse_frame_rate("24/1"), Some(24.0));
+    }
+
+    #[test] // Fractional frame rate like 30000/1001
+    fn test_parse_fractional_frame_rate() {
+        let result = parse_frame_rate("30000/1001").unwrap();
+        assert!((result - 29.97002997).abs() < 0.0001);
+    }
+    #[test] // Invalid string return none
+    fn test_parse_invalid_frame_rate() {
+        assert_eq!(parse_frame_rate("invlaid"), None);
+        assert_eq!(parse_frame_rate("30"), None);
+        assert_eq!(parse_frame_rate("abc/1"), None);
+    }
+    #[test] // Division by zero rejected
+    fn test_parse_zero_denominator() {
+        assert_eq!(parse_frame_rate("30/0"), None);
     }
 }
