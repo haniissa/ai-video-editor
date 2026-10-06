@@ -1,11 +1,13 @@
 use clap::{Parser, Subcommand};
 
+use crate::commands::analyze::analyze_video;
+
+mod commands;
 mod video;
 
 #[derive(Parser)]
 #[command(name = "ai-video-editor")]
 #[command(about = "AI powered video editing engine")]
-
 struct Cli {
     #[command(subcommand)]
     command: Commands, // hold the chosen subcommand
@@ -20,9 +22,9 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Analyze { video } => {
-            video::analyze_video(&video)?;
+            // println!("video: {}", video);
+            analyze_video(&video)?
         }
-
         Commands::Edit { video } => {
             println!("{}", video);
         }

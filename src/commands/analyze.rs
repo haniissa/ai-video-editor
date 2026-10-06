@@ -8,7 +8,7 @@ pub fn analyze_video(path: &str) -> anyhow::Result<()> {
     let metadata = ffprobe::get_metadata(path)?;
     let info = VideoInfo::from_metadata(&metadata)?;
     // let frame_rate = video
-    println!("info: {:#?}", info);
+    // println!("info: {:#?}", info);
     let duration_minutes = info.duration / 60.0;
 
     let analysis = VideoAnalysis {
@@ -42,8 +42,25 @@ pub fn analyze_video(path: &str) -> anyhow::Result<()> {
     // println!("frame rate: {}", analysis.video.frame_rate.unwrap_or(0.0));
     //Or
     match analysis.video.frame_rate {
-        Some(fps) => print!("Frame rate: {fps:.2} FPS"),
+        Some(fps) => println!("Frame rate: {fps:.2} FPS"),
         None => println!("Frame rate: Unknown"),
     }
+    match analysis.video.bit_rate {
+        // ffprob gives bitrate in bit/second => Mbps
+        Some(rate) => println!("Bit rate: {} Mbps", rate as f64 / 1_000_000.0),
+        None => println!("Bit rate: Unknown"),
+    }
+    match analysis.video.format.as_deref() {
+        Some(format) => println!("Format: {}", format),
+        None => println!("Format: Unknown"),
+    }
+    println!(
+        "Frame rate type: {}",
+        if analysis.video.is_constant_frame_rate {
+            "Constant (CFR)"
+        } else {
+            "Variable/Unknown (VFR)"
+        }
+    );
     Ok(())
 }

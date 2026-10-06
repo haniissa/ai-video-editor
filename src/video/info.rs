@@ -10,6 +10,9 @@ pub struct VideoInfo {
     pub has_audio: bool,
     pub sample_rate: Option<u32>,
     pub frame_rate: Option<f64>,
+    pub bit_rate: Option<u64>,
+    pub format: Option<String>,
+    pub is_constant_frame_rate: bool,
 }
 fn parse_frame_rate(rate: &str) -> Option<f64> {
     let (numerator, denominator) = rate.split_once('/')?;
@@ -23,6 +26,14 @@ fn parse_frame_rate(rate: &str) -> Option<f64> {
 
     Some(numerator / denominator)
 }
+
+fn is_constant_frame_rate(r_frame_rate: Option<f64>, avg_frame_rate: Option<f64>) -> bool {
+    match (r_frame_rate, avg_frame_rate) {
+        (Some(r), Some(avg)) => (r - avg).abs() < 0.01,
+        _ => false,
+    }
+}
+
 impl VideoInfo {
     pub fn from_metadata(metadata: &VideoMetadata) -> anyhow::Result<Self> {
         let duration = metadata
@@ -61,15 +72,35 @@ impl VideoInfo {
                 .as_deref()
                 .and_then(parse_frame_rate)
         });
+
+        let bit_rate = metadata
+            .format
+            .as_ref()
+            .and_then(|format| format.bit_rate.as_deref())
+            .and_then(|rate| rate.parse::<u64>().ok());
+
+        let format = metadata
+            .format
+            .as_ref()
+            .and_then(|format| format.format_name.clone());
+
+        let r_frame_rate =
+            video.and_then(|stream| stream.r_frame_rate.as_deref().and_then(parse_frame_rate));
+
+        let constant_frame_rate = is_constant_frame_rate(r_frame_rate, frame_rate);
+
         Ok(VideoInfo {
-            duration: duration, // short hand just duration like js
+            duration, // short hand just duration like js
             width,
-            height: height,
+            height,
             audio_codec,
             video_codec,
             has_audio,
             sample_rate,
             frame_rate,
+            bit_rate,
+            format,
+            is_constant_frame_rate: constant_frame_rate,
         })
     }
     pub fn resolution_label(&self) -> &str {
@@ -109,12 +140,43 @@ mod tests {
     }
     #[test] // Invalid string return none
     fn test_parse_invalid_frame_rate() {
-        assert_eq!(parse_frame_rate("invlaid"), None);
+        assert_eq!(parse_frame_rate("invalid"), None);
         assert_eq!(parse_frame_rate("30"), None);
         assert_eq!(parse_frame_rate("abc/1"), None);
     }
     #[test] // Division by zero rejected
     fn test_parse_zero_denominator() {
         assert_eq!(parse_frame_rate("30/0"), None);
+    }
+    #[test]
+    fn test_parse_bit_rate() {
+        let bit_rate = "3364471".parse::<u64>().ok();
+        assert_eq!(bit_rate, Some(3364471));
+    }
+    #[test]
+    fn test_parse_invalid_bit_rate() {
+        let bit_rate = "invalid".parse::<u64>().ok();
+        assert_eq!(bit_rate, None);
+    }
+    #[test]
+    fn test_parse_empty_bit_rate() {
+        let bit_rate = "".parse::<u64>().ok();
+        assert_eq!(bit_rate, None);
+    }
+    #[test]
+    fn test_constant_frame_rate() {
+        let result = is_constant_frame_rate(Some(30.0), Some(30.0));
+        assert!(result);
+    }
+    #[test]
+    fn test_variable_frame_rate() {
+        let result = is_constant_frame_rate(Some(30.0), Some(30.005));
+
+        assert!(result);
+    }
+    #[test]
+    fn test_missing_frame_rate() {
+        assert!(!is_constant_frame_rate(None, Some(30.0)));
+        assert!(!is_constant_frame_rate(Some(30.0), None));
     }
 }

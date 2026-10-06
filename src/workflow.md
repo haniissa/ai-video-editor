@@ -58,11 +58,18 @@ PHASE 1
 [ ] First actual edit
 
 
-Phase 2 — Internal Video Model
-[ ] Create VideoInfo struct
-[ ] Convert VideoMetadata → VideoInfo
-[ ] Add proper errors when video/audio missing
-[ ] Make analyze command print VideoInfo
+Phase 2
+  │
+  ├── FFprobe integration       ✅
+  ├── Parse raw metadata        ✅
+  ├── VideoMetadata model       ✅
+  ├── VideoInfo model           ✅
+  ├── Metadata → VideoInfo      ✅  ← COMMIT HERE
+  │
+  └── Human-readable analysis   ← next
+
+
+
 
 
 

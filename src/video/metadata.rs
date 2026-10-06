@@ -9,6 +9,8 @@ pub struct VideoMetadata {
 #[derive(Debug, Deserialize)]
 pub struct Format {
     pub duration: Option<String>,
+    pub bit_rate: Option<String>,
+    pub format_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -17,6 +19,9 @@ pub struct Stream {
     pub width: Option<u32>,
     pub height: Option<u32>,
     pub codec_type: Option<String>,
+    pub sample_rate: Option<String>,
+    pub avg_frame_rate: Option<String>,
+    pub r_frame_rate: Option<String>,
 }
 
 impl VideoMetadata {
@@ -33,9 +38,8 @@ impl VideoMetadata {
 }
 
 impl Format {
-    pub fn duration_seconds(&self) -> Option<f64>{
+    pub fn duration_seconds(&self) -> Option<f64> {
         let duration = self.duration.as_ref();
-        let dur = duration.map(|s| s.parse::<f64>().ok())?;
-        dur        
+        duration.map(|s| s.parse::<f64>().ok())?
     }
 }
