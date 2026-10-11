@@ -62,5 +62,19 @@ pub fn analyze_video(path: &str) -> anyhow::Result<()> {
             "Variable/Unknown (VFR)"
         }
     );
+    println!("Video streams: {}", analysis.video.video_stream_count);
+    println!("Audio streams: {}", analysis.video.audio_stream_count);
+
+    println!("Subtitle streams: {}", analysis.video.subtitle_stream_count);
+
+    println!(
+        "Multiple audio tracks: {}",
+        analysis.video.has_multiple_audio_tracks
+    );
+
+    println!(
+        "Has attached picture: {}",
+        analysis.video.has_attached_picture
+    );
     Ok(())
 }

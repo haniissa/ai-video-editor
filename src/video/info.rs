@@ -13,6 +13,11 @@ pub struct VideoInfo {
     pub bit_rate: Option<u64>,
     pub format: Option<String>,
     pub is_constant_frame_rate: bool,
+    pub video_stream_count: usize,
+    pub audio_stream_count: usize,
+    pub subtitle_stream_count: usize,
+    pub has_multiple_audio_tracks: bool, //2 or more
+    pub has_attached_picture: bool,
 }
 fn parse_frame_rate(rate: &str) -> Option<f64> {
     let (numerator, denominator) = rate.split_once('/')?;
@@ -32,6 +37,10 @@ fn is_constant_frame_rate(r_frame_rate: Option<f64>, avg_frame_rate: Option<f64>
         (Some(r), Some(avg)) => (r - avg).abs() < 0.01,
         _ => false,
     }
+}
+
+fn has_multiple_audio_tracks(audio_stream_count: usize) -> bool {
+    audio_stream_count > 1
 }
 
 impl VideoInfo {
@@ -89,6 +98,15 @@ impl VideoInfo {
 
         let constant_frame_rate = is_constant_frame_rate(r_frame_rate, frame_rate);
 
+        let video_stream_count = metadata.video_stream_count();
+        let audio_stream_count = metadata.audio_stream_count();
+
+        let subtitle_stream_count = metadata.subtitle_stream_count();
+
+        let has_multiple_audio_tracks = has_multiple_audio_tracks(audio_stream_count);
+
+        let has_attached_picture = metadata.has_attached_picture();
+
         Ok(VideoInfo {
             duration, // short hand just duration like js
             width,
@@ -101,6 +119,11 @@ impl VideoInfo {
             bit_rate,
             format,
             is_constant_frame_rate: constant_frame_rate,
+            video_stream_count,
+            audio_stream_count,
+            subtitle_stream_count,
+            has_multiple_audio_tracks,
+            has_attached_picture,
         })
     }
     pub fn resolution_label(&self) -> &str {
@@ -178,5 +201,12 @@ mod tests {
     fn test_missing_frame_rate() {
         assert!(!is_constant_frame_rate(None, Some(30.0)));
         assert!(!is_constant_frame_rate(Some(30.0), None));
+    }
+    #[test]
+    fn test_has_multiple_audio_tracks() {
+        assert!(!has_multiple_audio_tracks(0));
+        assert!(!has_multiple_audio_tracks(1));
+        assert!(has_multiple_audio_tracks(2));
+        assert!(has_multiple_audio_tracks(3));
     }
 }
