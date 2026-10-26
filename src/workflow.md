@@ -79,3 +79,32 @@ using it for:
 boilerplate generation
 explaining compiler errors
 refactoring suggestions
+
+
+
+
+AI Video Editor roadmap
+
+Phase 1 — Video Analysis
+
+Mostly complete
+
+Read metadata, codecs, frame rates, audio streams, and video properties.
+
+Phase 2 — Editor Engine
+
+In progress
+
+Edit segments, validate timelines, calculate output duration, and prepare real editing operations.
+
+Phase 3 — Real Video Processing
+
+Connect the engine to FFmpeg so it can cut and join actual video clips.
+
+Phase 4 — Frontend with Dioxus
+
+Build the interface in Rust: import videos, preview clips, display a timeline, select segments, and export.
+
+Phase 5 — AI Features
+
+Explore transcription, silence detection, automatic clip selection, and AI-assisted editing.

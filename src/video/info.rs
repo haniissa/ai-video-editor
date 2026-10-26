@@ -73,14 +73,8 @@ impl VideoInfo {
                 .as_ref()
                 .and_then(|s| s.parse::<u32>().ok())
         });
-        let video = metadata.video_stream();
 
-        let frame_rate = video.and_then(|frame_rate| {
-            frame_rate
-                .avg_frame_rate
-                .as_deref()
-                .and_then(parse_frame_rate)
-        });
+        let frame_rate = video.avg_frame_rate.as_deref().and_then(parse_frame_rate);
 
         let bit_rate = metadata
             .format
@@ -93,8 +87,7 @@ impl VideoInfo {
             .as_ref()
             .and_then(|format| format.format_name.clone());
 
-        let r_frame_rate =
-            video.and_then(|stream| stream.r_frame_rate.as_deref().and_then(parse_frame_rate));
+        let r_frame_rate = video.r_frame_rate.as_deref().and_then(parse_frame_rate);
 
         let constant_frame_rate = is_constant_frame_rate(r_frame_rate, frame_rate);
 
@@ -187,12 +180,12 @@ mod tests {
         assert_eq!(bit_rate, None);
     }
     #[test]
-    fn test_constant_frame_rate() {
-        let result = is_constant_frame_rate(Some(30.0), Some(30.0));
-        assert!(result);
+    fn test_constant_frame_rate_outside_tolerance() {
+        let result = is_constant_frame_rate(Some(30.0), Some(30.02));
+        assert!(!result);
     }
     #[test]
-    fn test_variable_frame_rate() {
+    fn test_variable_frame_rate_within_tolerance() {
         let result = is_constant_frame_rate(Some(30.0), Some(30.005));
 
         assert!(result);

@@ -45,13 +45,13 @@ impl VideoMetadata {
         self.streams
             .iter()
             .filter(|stream| {
-                stream.codec_type.as_deref() == Some("video") && 
-                !stream
-                    .disposition
-                    .as_ref()
-                    .and_then(|d| d.attached_pic)
-                    .is_some_and(|value| value == 1)
-                })
+                stream.codec_type.as_deref() == Some("video")
+                    && !stream
+                        .disposition
+                        .as_ref()
+                        .and_then(|d| d.attached_pic)
+                        .is_some_and(|value| value == 1)
+            })
             .count()
     }
     pub fn audio_stream_count(&self) -> usize {
@@ -120,9 +120,7 @@ mod tests {
                     sample_rate: Some("45000".to_string()),
                     avg_frame_rate: Some("0/0".to_string()),
                     r_frame_rate: Some("0/0".to_string()),
-                    disposition: Some(Disposition {
-                        attached_pic: Some(1),
-                    }),
+                    disposition: None,
                 },
                 Stream {
                     codec_name: Some("h232423".to_string()),
@@ -132,9 +130,7 @@ mod tests {
                     sample_rate: Some("452230".to_string()),
                     avg_frame_rate: Some("1/0".to_string()),
                     r_frame_rate: Some("25/0".to_string()),
-                    disposition: Some(Disposition {
-                        attached_pic: Some(2),
-                    }),
+                    disposition: None,
                 },
                 Stream {
                     codec_name: Some("h23423456".to_string()),
@@ -144,9 +140,7 @@ mod tests {
                     sample_rate: Some("452230".to_string()),
                     avg_frame_rate: Some("5324/0".to_string()),
                     r_frame_rate: Some("25/0".to_string()),
-                    disposition: Some(Disposition {
-                        attached_pic: Some(1),
-                    }),
+                    disposition: None,
                 },
                 Stream {
                     codec_name: Some("hs2345254902345".to_string()),
@@ -156,9 +150,7 @@ mod tests {
                     sample_rate: Some("452230".to_string()),
                     avg_frame_rate: Some("5324/0".to_string()),
                     r_frame_rate: Some("25/0".to_string()),
-                    disposition: Some(Disposition {
-                        attached_pic: Some(3),
-                    }),
+                    disposition: None,
                 },
             ],
         };
@@ -178,9 +170,7 @@ mod tests {
                 sample_rate: Some("45000".to_string()),
                 avg_frame_rate: Some("0/0".to_string()),
                 r_frame_rate: Some("0/0".to_string()),
-                disposition: Some(Disposition {
-                    attached_pic: Some(4),
-                }),
+                disposition: None,
             }],
         };
 
@@ -201,116 +191,91 @@ mod tests {
         assert_eq!(meta.subtitle_stream_count(), 0);
     }
     #[test]
-    fn test_has_attached_picture(){
-        let meta = VideoMetadata{
+    fn test_has_attached_picture() {
+        let meta = VideoMetadata {
             format: None,
-            streams: vec![
-                Stream{
-                    codec_name: Some("h255".to_string()),
-                    width: Some(1233),
-                    height: Some(820),
-                    codec_type: Some("video".to_string()),
-                    sample_rate: Some("45000".to_string()),
-                    avg_frame_rate: Some("0/0".to_string()),
-                    r_frame_rate: Some("0/0".to_string()),
-                    disposition: None,
-                },
-            ],
+            streams: vec![Stream {
+                codec_name: Some("h255".to_string()),
+                width: Some(1233),
+                height: Some(820),
+                codec_type: Some("video".to_string()),
+                sample_rate: Some("45000".to_string()),
+                avg_frame_rate: Some("0/0".to_string()),
+                r_frame_rate: Some("0/0".to_string()),
+                disposition: None,
+            }],
         };
-        let meta2 = VideoMetadata{
-                format: None,
-                streams: vec![
-                Stream{
-                    codec_name: Some("h255".to_string()),
-                    width: Some(1233),
-                    height: Some(820),
-                    codec_type: Some("video".to_string()),
-                    sample_rate: Some("45000".to_string()),
-                    avg_frame_rate: Some("0/0".to_string()),
-                    r_frame_rate: Some("0/0".to_string()),
-                    disposition: Some(
-                        Disposition { attached_pic: Some(1) }
-                    )
-                     
-                },
-            ],
+        let meta2 = VideoMetadata {
+            format: None,
+            streams: vec![Stream {
+                codec_name: Some("h255".to_string()),
+                width: Some(1233),
+                height: Some(820),
+                codec_type: Some("video".to_string()),
+                sample_rate: Some("45000".to_string()),
+                avg_frame_rate: Some("0/0".to_string()),
+                r_frame_rate: Some("0/0".to_string()),
+                disposition: Some(Disposition {
+                    attached_pic: Some(1),
+                }),
+            }],
         };
 
         let meta3 = VideoMetadata {
             format: None,
-            streams: vec![
-               Stream{
-                    codec_name: Some("h255".to_string()),
-                    width: Some(1233),
-                    height: Some(820),
-                    codec_type: Some("video".to_string()),
-                    sample_rate: Some("45000".to_string()),
-                    avg_frame_rate: Some("0/0".to_string()),
-                    r_frame_rate: Some("0/0".to_string()),
-                    disposition : Some(Disposition { attached_pic: Some(0) })
-                },
-                
-            ],
+            streams: vec![Stream {
+                codec_name: Some("h255".to_string()),
+                width: Some(1233),
+                height: Some(820),
+                codec_type: Some("video".to_string()),
+                sample_rate: Some("45000".to_string()),
+                avg_frame_rate: Some("0/0".to_string()),
+                r_frame_rate: Some("0/0".to_string()),
+                disposition: Some(Disposition {
+                    attached_pic: Some(0),
+                }),
+            }],
         };
-        let meta4 = VideoMetadata{
-            format: None,
-            streams: vec![
-                Stream{
-                    codec_name: Some("h255".to_string()),
-                    width: Some(1233),
-                    height: Some(820),
-                    codec_type: Some("video".to_string()),
-                    sample_rate: Some("45000".to_string()),
-                    avg_frame_rate: Some("0/0".to_string()),
-                    r_frame_rate: Some("0/0".to_string()),
-                    disposition : Some(Disposition { attached_pic: None})
- 
-                }
-            ]
-        };
-    
+
         assert!(!meta.has_attached_picture());
         assert!(meta2.has_attached_picture());
         assert!(!meta3.has_attached_picture());
-    
     }
     #[test]
-    fn test_video_stream_count2(){
-        let meta = VideoMetadata{
-            format:None,
-            streams:vec![
-                Stream {
-                    codec_name: Some("ahn".to_string()),
-                    width: Some(1233),
-                    height: Some(820),
-                    codec_type: Some("video".to_string()),
-                    sample_rate: Some("45000".to_string()),
-                    avg_frame_rate: Some("0/0".to_string()),
-                    r_frame_rate: Some("0/0".to_string()),
-                    disposition:  Some(
-                        Disposition {attached_pic: Some(1)}
-                    )
-                },
-            ],
-        };
-        let meta2 = VideoMetadata{
+    fn test_video_stream_count2() {
+        let meta = VideoMetadata {
             format: None,
-            streams: vec![
-                Stream{
-                    codec_name: Some("ahn".to_string()),
-                    width: Some(1233),
-                    height: Some(820),
-                    codec_type: Some("video".to_string()),
-                    sample_rate: Some("45000".to_string()),
-                    avg_frame_rate: Some("0/0".to_string()),
-                    r_frame_rate: Some("0/0".to_string()),
-                    disposition:  Some(
-                        Disposition {attached_pic: Some(0)}
-                    )
-                },
-            ],
+            streams: vec![Stream {
+                codec_name: Some("ahn".to_string()),
+                width: Some(1233),
+                height: Some(820),
+                codec_type: Some("video".to_string()),
+                sample_rate: Some("45000".to_string()),
+                avg_frame_rate: Some("0/0".to_string()),
+                r_frame_rate: Some("0/0".to_string()),
+                disposition: Some(Disposition {
+                    attached_pic: Some(1),
+                }),
+            }],
         };
-        assert_eq!(meta.video_stream_count(), 1);
-        assert_eq!(!meta2.video_stream_count(), 0);
+        let meta2 = VideoMetadata {
+            format: None,
+            streams: vec![Stream {
+                codec_name: Some("ahn".to_string()),
+                width: Some(1233),
+                height: Some(820),
+                codec_type: Some("video".to_string()),
+                sample_rate: Some("45000".to_string()),
+                avg_frame_rate: Some("0/0".to_string()),
+                r_frame_rate: Some("0/0".to_string()),
+                disposition: Some(Disposition {
+                    attached_pic: Some(0),
+                }),
+            }],
+        };
+        assert_eq!(meta.video_stream_count(), 0); // attached picture
+        assert_eq!(meta2.video_stream_count(), 1); // normal video
     }
 }
+
+//note: ! with int => bitwise NOT
