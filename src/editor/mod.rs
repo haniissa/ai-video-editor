@@ -1,4 +1,6 @@
 pub mod edl;
+pub mod project;
+pub mod project_file;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,15 +23,16 @@ pub struct TimelineSegment {
 
 impl EditSegment {
     pub fn validate(&self) -> anyhow::Result<()> {
+        if !self.start.is_finite() || !self.end.is_finite() {
+            anyhow::bail!("Segment timestamp must be finite numbers");
+        }
+
         if self.start < 0.0 {
             anyhow::bail!("Segment start cannot be negative");
         }
+
         if self.end <= self.start {
             anyhow::bail!("Segment end must be greater than start");
-        }
-
-        if !self.start.is_finite() || !self.end.is_finite() {
-            anyhow::bail!("Segment timestamp must be finite numbers");
         }
 
         Ok(())
@@ -251,5 +254,29 @@ mod tests {
         assert_eq!(timeline[1].source_start, 10.0);
         assert_eq!(timeline[1].output_start, 5.0);
         assert_eq!(timeline[1].output_end, 10.0);
+    }
+    #[test]
+    fn segment_with_nan_timestamp_fails() {
+        let segment = EditSegment {
+            start: f64::NAN,
+            end: 5.0,
+        };
+        assert!(segment.validate().is_err());
+    }
+    #[test]
+    fn adjacent_segment_are_valid() {
+        let list = EditDecisionList {
+            segments: vec![
+                EditSegment {
+                    start: 0.0,
+                    end: 5.0,
+                },
+                EditSegment {
+                    start: 5.0,
+                    end: 10.0,
+                },
+            ],
+        };
+        assert!(list.validate().is_ok());
     }
 }

@@ -80,7 +80,7 @@ mod tests {
         fs::remove_file(path).unwrap();
     }
     #[test]
-    fn saving_invalid_edl_failes() {
+    fn saving_invalid_edl_fails() {
         let path = temp_file("invalid-save");
         let invalid = EditDecisionList {
             segments: vec![EditSegment {
