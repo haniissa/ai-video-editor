@@ -1,3 +1,4 @@
+use crate::editor::{EditDecisionList, EditSegment};
 use serde::{Deserialize, Serialize};
 
 /// A video or audio file imported into the project
@@ -145,44 +146,101 @@ impl EditorProject {
             .map(Clip::timeline_end)
             .fold(0.0_f64, f64::max)
     }
+
+    pub fn to_edl(&self, track_id: &str) -> anyhow::Result<EditDecisionList> {
+        //validate the project before converting it
+        self.validate()?;
+
+        //Find the requested track by ID
+        let track = self
+            .tracks
+            .iter()
+            .find(|track| track.id == track_id)
+            .ok_or_else(|| anyhow::anyhow!("Track not found: {}", track_id))?;
+        //only video tracks can currently be exported this way
+        if track.kind != TrackKind::Video {
+            anyhow::bail!("Selected track is not a video track");
+        }
+        if track.clips.is_empty() {
+            anyhow::bail!("Selected video track contains no clips");
+        }
+
+        //The current FFmpeg exporter accepts one input file
+        let first_asset_id = &track.clips[0].media_asset_id;
+
+        if track
+            .clips
+            .iter()
+            .any(|clip| clip.media_asset_id != *first_asset_id)
+        {
+            anyhow::bail!("All clips on the selected track must use the same media asset");
+        }
+
+        //Sort clips by their position on the editing timeline
+        let mut clips: Vec<&Clip> = track.clips.iter().collect();
+
+        clips.sort_by(|a, b| a.timeline_start.total_cmp(&b.timeline_start));
+        //the current exporter concatenates clips without gaps
+        //Therefore, require clips to form a continuous timeline
+        let mut expected_start = 0.0;
+        let epsilon = 0.000_001;
+
+        let mut segments = Vec::new();
+
+        for clip in clips {
+            if (clip.timeline_start - expected_start).abs() > epsilon {
+                anyhow::bail!(
+                    "Video track must have clips placed continuously without gaps  or overlaps"
+                );
+            }
+            segments.push(EditSegment {
+                start: clip.source_start,
+                end: clip.source_end,
+            });
+            expected_start = clip.timeline_end();
+        }
+        let edl = EditDecisionList { segments };
+        edl.validate()?;
+        Ok(edl)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn sample_project() -> EditorProject {
+    fn valid_project() -> EditorProject {
         EditorProject {
             id: "project-1".into(),
             name: "My first edit".into(),
             media: vec![MediaAsset {
                 id: "media-1".into(),
-                name: "video.mp4".into(),
-                path: "video.mp4".into(),
-                duration_seconds: 120.0,
+                name: "Test Video".to_string(),
+                path: "test.mp4".to_string(),
+                duration_seconds: 30.0,
             }],
             tracks: vec![Track {
-                id: "track-1".into(),
-                name: "Video 1".into(),
+                id: "video-track-1".to_string(),
+                name: "Video Track".to_string(),
                 kind: TrackKind::Video,
                 clips: vec![Clip {
                     id: "clip-1".into(),
                     media_asset_id: "media-1".into(),
                     timeline_start: 0.0,
-                    source_start: 10.0,
-                    source_end: 30.0,
+                    source_start: 0.0,
+                    source_end: 5.0,
                 }],
             }],
         }
     }
     #[test]
     fn valid_project_passes_validation() {
-        assert!(sample_project().validate().is_ok());
+        assert!(valid_project().validate().is_ok());
     }
 
     #[test]
     fn unknown_media_reference_fails_validation() {
-        let mut project = sample_project();
+        let mut project = valid_project();
         project.tracks[0].clips[0].media_asset_id = "missing-media".into();
 
         assert!(project.validate().is_err());
@@ -190,7 +248,7 @@ mod tests {
 
     #[test]
     fn invalid_source_range_fails_validation() {
-        let mut project = sample_project();
+        let mut project = valid_project();
         project.tracks[0].clips[0].source_end = 150.0;
 
         assert!(project.validate().is_err());
@@ -198,8 +256,48 @@ mod tests {
 
     #[test]
     fn timeline_duration_uses_latest_clip_end() {
-        let project = sample_project();
+        let mut project = valid_project();
+
+        project.tracks[0].clips.push(Clip {
+            id: "clip-2".to_string(),
+            media_asset_id: "media-1".to_string(),
+            timeline_start: 15.0,
+            source_start: 10.0,
+            source_end: 15.0,
+        });
 
         assert_eq!(project.timeline_duration(), 20.0);
+    }
+
+    #[test]
+    fn converts_video_to_edl_in_timeline_order() {
+        let mut project = valid_project();
+
+        //Deliberately make source order different from timeline order.
+        project.tracks[0].clips = vec![
+            Clip {
+                id: "clip-b".to_string(),
+                media_asset_id: "media-1".to_string(),
+                timeline_start: 5.0,
+                source_start: 3.0,
+                source_end: 7.0,
+            },
+            Clip {
+                id: "clip-a".to_string(),
+                media_asset_id: "media-1".to_string(),
+                timeline_start: 0.0,
+                source_start: 20.0,
+                source_end: 25.0,
+            },
+        ];
+        let edl = project.to_edl("video-track-1").unwrap();
+
+        assert_eq!(edl.segments.len(), 2);
+
+        assert_eq!(edl.segments[0].start, 20.0);
+        assert_eq!(edl.segments[0].end, 25.0);
+
+        assert_eq!(edl.segments[1].start, 3.0);
+        assert_eq!(edl.segments[1].end, 7.0);
     }
 }

@@ -47,23 +47,9 @@ impl EditDecisionList {
         for segment in &self.segments {
             segment.validate()?;
         }
-
-        //Sort references by start time without changing the original list
-        let mut sorted_segments: Vec<&EditSegment> = self.segments.iter().collect();
-
-        sorted_segments.sort_by(|a, b| a.start.total_cmp(&b.start));
-
-        //Then, check that segments do not overlap
-        for pair in sorted_segments.windows(2) {
-            let current = &pair[0];
-            let next = &pair[1];
-
-            if next.start < current.end {
-                anyhow::bail!("Edit segments cannot overlap");
-            }
-        }
         Ok(())
     }
+
     pub fn total_duration(&self) -> f64 {
         self.segments
             .iter()
@@ -73,13 +59,10 @@ impl EditDecisionList {
     pub fn build_timeline(&self) -> anyhow::Result<Vec<TimelineSegment>> {
         self.validate()?;
 
-        let mut segments: Vec<&EditSegment> = self.segments.iter().collect();
-        segments.sort_by(|a, b| a.start.total_cmp(&b.start));
-
         let mut output_time = 0.0;
-        let mut timeline = Vec::new();
+        let mut timeline: Vec<TimelineSegment> = Vec::new();
 
-        for segment in segments {
+        for segment in &self.segments {
             let duration = segment.end - segment.start;
 
             timeline.push(TimelineSegment {
@@ -143,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn overlapping_segments_fail() {
+    fn overlapping_segments_are_valid() {
         let list = EditDecisionList {
             segments: vec![
                 EditSegment {
@@ -156,7 +139,7 @@ mod tests {
                 },
             ],
         };
-        assert!(list.validate().is_err());
+        assert!(list.validate().is_ok());
     }
 
     #[test]
@@ -177,7 +160,7 @@ mod tests {
         assert!(list.validate().is_ok());
     }
     #[test]
-    fn out_of_order_overlapping_segments_fail() {
+    fn out_of_order_overlapping_segments_are_valid() {
         let list = EditDecisionList {
             segments: vec![
                 EditSegment {
@@ -190,7 +173,7 @@ mod tests {
                 },
             ],
         };
-        assert!(list.validate().is_err());
+        assert!(list.validate().is_ok());
     }
 
     #[test]
@@ -248,10 +231,11 @@ mod tests {
         let timeline = list.build_timeline().unwrap();
 
         assert_eq!(timeline.len(), 2);
-        assert_eq!(timeline[0].source_start, 0.0);
+        assert_eq!(timeline[0].source_start, 10.0);
         assert_eq!(timeline[0].output_start, 0.0);
         assert_eq!(timeline[0].output_end, 5.0);
-        assert_eq!(timeline[1].source_start, 10.0);
+        //Second segment stays second
+        assert_eq!(timeline[1].source_start, 0.0);
         assert_eq!(timeline[1].output_start, 5.0);
         assert_eq!(timeline[1].output_end, 10.0);
     }

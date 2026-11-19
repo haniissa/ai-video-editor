@@ -4,3 +4,6 @@
 *.txt
 .opencode
 .agents
+# Local test files
+/edit.json
+/edit1.json

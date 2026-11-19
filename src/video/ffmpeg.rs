@@ -78,7 +78,6 @@ mod tests {
     use super::*;
     use crate::editor::EditSegment;
     use anyhow::{Context, Result};
-    use serde::de::Expected;
     use std::process::Command;
 
     fn sample_edl() -> EditDecisionList {
@@ -114,6 +113,12 @@ mod tests {
             ]);
         }
 
+        command.args(["-c:v", "libx264", "-pix_fmt", "yuv420p"]);
+
+        if with_audio {
+            command.args(["-c:a", "aac"]);
+        }
+
         command.arg(path);
 
         let result = command
@@ -131,7 +136,7 @@ mod tests {
     fn assert_export(
         input: &std::path::Path,
         output: &std::path::Path,
-        Expected_audio_streams: usize,
+        expected_audio_streams: usize,
     ) -> Result<()> {
         export_segments(
             input.to_str().context("Invalid input path")?,
@@ -149,7 +154,7 @@ mod tests {
 
         assert_eq!(
             metadata.audio_stream_count(),
-            Expected_audio_streams,
+            expected_audio_streams,
             "Unexpected number of audio streams",
         );
 
@@ -180,13 +185,15 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn export_with_audio_produces_both_streams() -> Result<()> {
+    fn export_without_audio_produces_video_only() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
 
         let input = temp_dir.path().join("input-video-only.mp4");
-        let ouput = temp_dir.path().join("output-video-only.mp4");
+        let output = temp_dir.path().join("output-video-only.mp4");
 
         create_test_video(&input, false)?;
+
+        assert_export(&input, &output, 0)?;
 
         Ok(())
     }
